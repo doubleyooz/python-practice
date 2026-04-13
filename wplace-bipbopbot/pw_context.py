@@ -1,0 +1,44 @@
+import random
+from typing import Tuple
+from playwright.sync_api import Playwright, Browser, BrowserContext
+from constants.output import LOG_FILENAME, OUTPUT_FOLDER
+from pw_proxies import get_proxy
+from fake_useragent import UserAgent
+from logger import translation_logger
+
+logger = translation_logger.get_logger(
+    output_folder=OUTPUT_FOLDER,
+    log_filename=LOG_FILENAME
+)
+locales = ["en-US", "en-GB", "en-CA", "en-AU", "en-NZ", "en-IE"]
+
+def get_new_context(playwright: Playwright, headless: bool = False, useProxy: bool = False, msg_prefix: str = '') -> Tuple[Browser, BrowserContext]:
+    args = [] if random.random() < 0.6 else ['--mute-audio']
+    # args.append('--disable-web-security')
+    random_locale = random.choice(locales)
+    browser = playwright.chromium.launch(
+        headless=headless,
+        args=args,
+        )
+      
+    proxy = get_proxy() if useProxy else None
+    logger.info(f"{msg_prefix} Proxy: {proxy['server'] if proxy else 'None'}")
+    return browser, browser.new_context(
+        user_agent=UserAgent().random,
+        extra_http_headers={
+            "Accept-Language": "en-US,en;q=0.9",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+            "DNT": "1",  # Do Not Track
+            "Upgrade-Insecure-Requests": "1",  
+            'Access-Control-Allow-Origin': '*'              
+        },
+        proxy=proxy,
+        locale=random_locale,
+        java_script_enabled=True,
+        viewport={
+            'width': random.randint(1366, 1920),
+            'height': random.randint(768, 1080)
+        },
+    )
+    
