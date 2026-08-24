@@ -1,0 +1,8 @@
+playwright
+
+evaluate
+pandas
+translate
+sacrebleu
+sentencepiece
+typing_extensions
