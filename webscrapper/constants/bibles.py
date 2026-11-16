@@ -173,6 +173,28 @@ PDV2017: VersionInfo = {
     "apocrypha": True,
 }
 
+BWM1588: VersionInfo = {
+    'text': "bwm1588",
+    'suffix': "BWM1588",
+    'id': 3563,
+    "language": "Welsh",
+    "name": "Biblical Worldview Movement 1588",
+    "file": f'{BIBLE}_bwm1588.txt',
+    "apocrypha": True,
+}
+
+VULG: VersionInfo = {
+    'text': "vulg",
+    'suffix': "VULG",
+    'id': 823,
+    "language": "Latin",
+    "name": "Vulgate",
+    "file": f'{BIBLE}_vulg.txt',
+    "apocrypha": True,
+}
+
+
+
 # Mark 4:40-41 are merged into a single verse in BCC1923
 BCC1923: VersionInfo = {
     'text': "bcc1923",
@@ -190,9 +212,6 @@ def get_random_version() -> VersionInfo:
     return random.choice(VERSIONS)
 
 VERSIONS = [
-    KOAD21,
-    BCNDA,
-    ABK,
-    CPDV,
-    BCC1923,
+    BWM1588,
+    VULG
 ]

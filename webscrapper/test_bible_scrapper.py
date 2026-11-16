@@ -34,7 +34,7 @@ class TaskResultType(TypedDict):
     entries: List[Dict[str, any]]
     
 
-class EntryType(TypedDict, extra_items=str):
+class EntryType(TypedDict):
     chapter: int
     verse: int
     book_name: str
