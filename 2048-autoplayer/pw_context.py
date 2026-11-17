@@ -37,8 +37,8 @@ def get_new_context(playwright: Playwright, headless: bool = False, useProxy: bo
         java_script_enabled=True,
         viewport=(
             {
-                'width': random.randint(800, 1366),
-                'height': random.randint(400, 768)
+                'width': random.randint(680, 1366),
+                'height': random.randint(380, 768)
             }
             if smaller_screens
             else {

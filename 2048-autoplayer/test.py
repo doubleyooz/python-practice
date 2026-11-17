@@ -15,7 +15,7 @@ logger = translation_logger.get_logger(
     output_folder=OUTPUT_FOLDER,
     log_filename=LOG_FILENAME
 )
-KEY = "z2917383p223s2p263s2v2f163c3e3"
+
 url = "https://play2048.co/"
 
 def get_board_state(page, batch_msg):
@@ -46,48 +46,44 @@ def puppeter_browser(
         page.add_init_script(GAME_HOOK)
   
         # logger.info(f"{batch_msg} {len(batch)} sentences")
-        with page.expect_event("worker") as worker_info:
-            page.on("console", lambda msg: logger.info(f"BROWSER CONSOLE: {msg.text}"))
-            page.on("pageerror", lambda err: logger.error(f"PAGE ERROR: {err}"))
-            perform_action(lambda: page.goto(url, timeout=CONFIG["page_timeout_ms"]), f"{batch_msg} goto")
-            # handle_cookies_request(page=page, batch_msg=batch_msg)
+                  
+        page.on("pageerror", lambda err: logger.error(f"PAGE ERROR: {err}"))
+        perform_action(lambda: page.goto(url, timeout=CONFIG["page_timeout_ms"]), f"{batch_msg} goto")
+        # handle_cookies_request(page=page, batch_msg=batch_msg)
+    
         
-            
-            logger.debug(f"{batch_msg} Filtering logs.")
-            batch_msg = batch_msg.split('|')[0]
+        logger.debug(f"{batch_msg} Filtering logs.")
+        batch_msg = batch_msg.split('|')[0]
 
-            get_random_delay([0.3, 0.6])                           
-           
-            worker = worker_info.value
+        get_random_delay([0.3, 0.6])                           
+        
+        
+        text = get_board_state(page, batch_msg)
+        logger.warning(f"{batch_msg} text: {text}")
 
-            # Evaluate JavaScript inside the worker's global scope
-            worker_url = worker.evaluate("() => self.location.href")
-            logger.warning(f"{batch_msg} Worker URL: {worker_url}")
-
-            text = get_board_state(page, batch_msg)
-            logger.warning(f"{batch_msg} text: {text}")
-
-            page.wait_for_selector("canvas", timeout=15000)
-            get_random_delay([1, 4])        
-            for fr in page.frames:
-                try:
-                    info = fr.evaluate("""() => ({
-                        url: location.href,
-                        canvases: document.querySelectorAll('canvas').length,
-                        tileMap: !!window.__tileMap,
-                        installed: !!window.__tileHookInstalled,
-                        setCount: window.__setCount ?? null,
-                    })""")
-                    logger.info(f"{batch_msg} FRAME {fr.url} -> {info}")
-                except Exception as e:
-                    logger.info(f"{batch_msg} FRAME {fr.url} -> ERROR {e}")
-            final_board = play_2048(page, logger, batch_msg) 
-            translation_logger.filter_log(
-                filter_func=lambda line: batch_msg in line,
-                new_filename=batch_msg,
-                output_folder="filtered_logs",
-                msg=batch_msg
-            )
+        page.wait_for_selector("canvas", timeout=15000)
+        get_random_delay([1, 4])        
+        for fr in page.frames:
+            try:
+                info = fr.evaluate("""() => ({
+                    url: location.href,
+                    canvases: document.querySelectorAll('canvas').length,
+                    tileMap: !!window.__tileMap,
+                    installed: !!window.__tileHookInstalled,
+                    setCount: window.__setCount ?? null,
+                })""")
+                logger.info(f"{batch_msg} FRAME {fr.url} -> {info}")
+            except Exception as e:
+                logger.info(f"{batch_msg} FRAME {fr.url} -> ERROR {e}")
+        # page.locator("button.bg-near-black.absolute.right-0.top-0").click()
+        final_board = play_2048(page, logger, batch_msg, 5000, 0.2) 
+        logger.info(f"{batch_msg} final_board {final_board}")
+        translation_logger.filter_log(
+            filter_func=lambda line: batch_msg in line,
+            new_filename=batch_msg,
+            output_folder="filtered_logs",
+            msg=batch_msg
+        )
         context.close()
         browser.close()
 
@@ -135,9 +131,9 @@ def play_2048(page, logger, batch_msg, max_moves: int = 5000, move_delay_ms: flo
                 return out;
             }}""")
             logger.info(f"{batch_msg} MAP[{i}] entries: {details}")
-
-    page.screenshot(path=f"output/attempts/{batch_msg}_primed.png")
-
+   
+    take_screenshot(page, f"{batch_msg}_primed.png", msg_prefix=batch_msg)
+    
     for move_num in range(max_moves):
         board = get_board_state(page, batch_msg)
         if not any(any(row) for row in board):
@@ -148,15 +144,17 @@ def play_2048(page, logger, batch_msg, max_moves: int = 5000, move_delay_ms: flo
             logger.warning(f"{batch_msg} empty at move {move_num}, "
                            f"setCount={page.evaluate('() => window.__setCount')}")
             break
-        direction = best_move(board)
+        direction, best_score = best_move(board, 2, logger)
+        logger.info(f"{batch_msg} move: {move_num}, direction: {direction}, score: {best_score}")
         if direction is None:
-            logger.info(f"{batch_msg} game over at move {move_num}, max={max(max(r) for r in board)}")
+            logger.info(f"{batch_msg} game over at move {move_num}, max: {max(max(r) for r in board)}")
             break
         page.keyboard.press(f"Arrow{direction.capitalize()}")
         get_random_delay([move_delay_ms, move_delay_ms * 1.3])
         if move_num % 50 == 0:
-            logger.info(f"{batch_msg} move {move_num} max={max(max(r) for r in board)}")
+            logger.info(f"{batch_msg} move {move_num} max: {max(max(r) for r in board)}")
 
+    take_screenshot(page, f"{batch_msg}_final_board.png", msg_prefix=batch_msg)
     return get_board_state(page, batch_msg)
 
 puppeter_browser("test 1", False)

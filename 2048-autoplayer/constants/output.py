@@ -1,2 +1,2 @@
 OUTPUT_FOLDER = "output/attempts"
-LOG_FILENAME = f'crazy_ass_jigg2a'
+LOG_FILENAME = f'board'
