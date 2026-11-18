@@ -76,7 +76,13 @@ def puppeter_browser(
             except Exception as e:
                 logger.info(f"{batch_msg} FRAME {fr.url} -> ERROR {e}")
         # page.locator("button.bg-near-black.absolute.right-0.top-0").click()
-        final_board = play_2048(page, logger, batch_msg, 5000, 0.2) 
+        final_board = play_2048(
+            page=page,
+            logger=logger,
+            batch_msg=batch_msg,
+            max_moves=5000,
+            move_delay_ms=0.1
+        ) 
         logger.info(f"{batch_msg} final_board {final_board}")
         translation_logger.filter_log(
             filter_func=lambda line: batch_msg in line,
@@ -133,19 +139,21 @@ def play_2048(page, logger, batch_msg, max_moves: int = 5000, move_delay_ms: flo
             logger.info(f"{batch_msg} MAP[{i}] entries: {details}")
    
     take_screenshot(page, f"{batch_msg}_primed.png", msg_prefix=batch_msg)
-    
-    for move_num in range(max_moves):
+    button = page.get_by_role("button", name="Keep Going")
+    for move_num in range(max_moves):    
+        if button.is_visible():
+            button.click()
         board = get_board_state(page, batch_msg)
         if not any(any(row) for row in board):
             page.keyboard.press("ArrowLeft")
-            page.wait_for_timeout(400)
+            get_random_delay(2, 5)
             board = get_board_state(page, batch_msg)
         if not any(any(row) for row in board):
             logger.warning(f"{batch_msg} empty at move {move_num}, "
                            f"setCount={page.evaluate('() => window.__setCount')}")
             break
         direction, best_score = best_move(board, 2, logger)
-        logger.info(f"{batch_msg} move: {move_num}, direction: {direction}, score: {best_score}")
+        logger.info(f"{batch_msg} move: {move_num}, direction: {direction}, score: {best_score:.2f}")
         if direction is None:
             logger.info(f"{batch_msg} game over at move {move_num}, max: {max(max(r) for r in board)}")
             break
