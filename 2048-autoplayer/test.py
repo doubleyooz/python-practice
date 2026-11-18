@@ -8,7 +8,7 @@ from constants.game_hook import GAME_HOOK
 from pw_context import get_new_context
 from scrapper_config import CONFIG
 from logger import translation_logger
-from solver_2048 import best_move
+from solver_2048 import best_move, score
 from lzstring import LZString
 
 logger = translation_logger.get_logger(
@@ -140,13 +140,18 @@ def play_2048(page, logger, batch_msg, max_moves: int = 5000, move_delay_ms: flo
    
     take_screenshot(page, f"{batch_msg}_primed.png", msg_prefix=batch_msg)
     button = page.get_by_role("button", name="Keep Going")
-    for move_num in range(max_moves):    
+    for move_num in range(max_moves):  
+        
+        board = get_board_state(page, batch_msg)  
         if button.is_visible():
-            button.click()
-        board = get_board_state(page, batch_msg)
+            get_random_delay([1, 2])
+            final_board_score, foo = score(board, logger)
+            take_screenshot(page, f"{batch_msg}_victory_board_{final_board_score:.2f}.png", msg_prefix=batch_msg)
+            button.is_visible() and button.click()
+        
         if not any(any(row) for row in board):
             page.keyboard.press("ArrowLeft")
-            get_random_delay(2, 5)
+            get_random_delay([2, 5])
             board = get_board_state(page, batch_msg)
         if not any(any(row) for row in board):
             logger.warning(f"{batch_msg} empty at move {move_num}, "
@@ -162,6 +167,7 @@ def play_2048(page, logger, batch_msg, max_moves: int = 5000, move_delay_ms: flo
         if move_num % 50 == 0:
             logger.info(f"{batch_msg} move {move_num} max: {max(max(r) for r in board)}")
 
+    
     take_screenshot(page, f"{batch_msg}_final_board.png", msg_prefix=batch_msg)
     return get_board_state(page, batch_msg)
 
